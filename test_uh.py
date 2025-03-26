@@ -1,3 +1,5 @@
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -75,7 +77,11 @@ def main(model_path, image_path, device='cuda'):
 
 
 if __name__ == "__main__":
-    model_path = 'checkpoints/unet_powerline.pth'  # 模型路径
+    parser = argparse.ArgumentParser(description="Power Line UNet Test")
+    parser.add_argument('--img_path', type=str, default=r'K:\\dataset\\power line dataset\\images\\313.png')
+    parser.add_argument('--weight_path', type=str, default=r'checkpoints/unet_powerline.pth')
+    model_path = parser.weight_path  # 模型路径
     # image_path = "K:\\dataset\\coco_powerline_1\\train\\25_00694.jpg"
-    image_path = 'K:\\dataset\\power line dataset\\images\\313.png'  # 输入图像路径
+
+    image_path = parser.img_path  # 输入图像路径
     main(model_path, image_path, device='cuda')  # 可以选择 'cuda' 或 'cpu'
