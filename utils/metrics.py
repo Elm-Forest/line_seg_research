@@ -43,17 +43,17 @@ def mIoU(pr, gt, eps=1e-7, n_classes=2):
     iou_per_class = []
 
     # Iterate through each class
-    for sem_class in range(n_classes):
-        pr_inds = (pr == sem_class)
-        gt_inds = (gt == sem_class)
+    sem_class = 1
+    pr_inds = (pr == sem_class)
+    gt_inds = (gt == sem_class)
 
-        if gt_inds.long().sum().item() == 0:
-            iou_per_class.append(torch.tensor(float('nan')))
-        else:
-            intersect = torch.logical_and(pr_inds, gt_inds).sum().float().item()
-            union = torch.logical_or(pr_inds, gt_inds).sum().float().item()
-            iou = (intersect + eps) / (union + eps)
-            iou_per_class.append(iou)
+    if gt_inds.long().sum().item() == 0:
+        iou_per_class.append(torch.tensor(float('nan')))
+    else:
+        intersect = torch.logical_and(pr_inds, gt_inds).sum().float().item()
+        union = torch.logical_or(pr_inds, gt_inds).sum().float().item()
+        iou = (intersect + eps) / (union + eps)
+        iou_per_class.append(iou)
 
     # Return mean IoU, ignoring NaNs (if any class does not appear in ground truth)
     return torch.nanmean(torch.tensor(iou_per_class))
