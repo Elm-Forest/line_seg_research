@@ -7,6 +7,7 @@ import numpy as np
 from segmentation_models_pytorch import Segformer
 
 from losses.dice import DiceLoss, FocalLoss
+from models.Unet.unet_std import UNet
 from utils.metrics import mIoU
 
 warnings.filterwarnings("ignore")
@@ -41,7 +42,7 @@ def train(args):
     # 模型
     # model = UNet_Line(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     # model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
-    model = Segformer(encoder_name="mit_b2", encoder_weights="imagenet", classes=args.num_classes).to(device)
+    model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     # Mask2Former
     bce_criterion = FocalLoss(logits=True).to(device)
     # dice_criterion = DiceLoss().to(device)
