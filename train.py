@@ -4,7 +4,6 @@ import os
 import warnings
 
 import numpy as np
-from segmentation_models_pytorch import Segformer
 
 from losses.dice import DiceLoss, FocalLoss
 from models.Unet.unet_std import UNet
