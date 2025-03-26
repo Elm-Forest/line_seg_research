@@ -10,7 +10,11 @@ setup(
                 'deep_hough_plus_cuda.cpp',
                 'deep_hough_plus_cuda_kernel.cu'
             ],
-            extra_compile_args={'cxx': ['-g'], 'nvcc': ['-arch=sm_75']}
+            extra_compile_args={'cxx': ['-O3'], 'nvcc': [
+                    '-O3',
+                    '-gencode=arch=compute_60,code=sm_60',   # P100 必须有
+                    '-gencode=arch=compute_75,code=sm_75',   # T4等
+                ],}
         )
     ],
     cmdclass={
