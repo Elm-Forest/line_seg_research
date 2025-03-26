@@ -71,10 +71,10 @@ def main(model_path, image_path, device='cuda'):
     pred_mask, p1, p2, p3 = infer(model, img_tensor, device)
 
     # 可视化结果
-    visualize_result(image, pred_mask, img_size=512, file_name="pred.png")  # 保持输入的resize尺寸
-    visualize_result(image, p1, img_size=512, file_name="p1.png")  # 保持输入的resize尺寸
-    visualize_result(image, p2, img_size=512, file_name="p2.png")  # 保持输入的resize尺寸
-    visualize_result(image, p3, img_size=512, file_name="p3.png")  # 保持输入的resize尺寸
+    visualize_result(image, pred_mask, img_size=512, file_name="pred")  # 保持输入的resize尺寸
+    visualize_result(image, p1, img_size=512, file_name="p1")  # 保持输入的resize尺寸
+    visualize_result(image, p2, img_size=512, file_name="p2")  # 保持输入的resize尺寸
+    visualize_result(image, p3, img_size=512, file_name="p3")  # 保持输入的resize尺寸
 
 
 if __name__ == "__main__":
