@@ -47,7 +47,7 @@ def infer(model, img_tensor, device):
 
 
 # 可视化推理结果
-def visualize_result(image, pred_mask, img_size):
+def visualize_result(image, pred_mask, img_size, file_name):
     # 将预测掩码恢复到原始图像的尺寸
     pred_mask_resized = Image.fromarray(pred_mask.astype(np.uint8)).resize(image.size, Image.NEAREST)
 
@@ -55,6 +55,7 @@ def visualize_result(image, pred_mask, img_size):
     plt.imshow(image)
     plt.imshow(pred_mask_resized, alpha=0.5)  # 以透明度0.5叠加预测掩码
     plt.axis('off')
+    plt.savefig(f'result{file_name}.png')
     plt.show()
 
 
@@ -70,10 +71,10 @@ def main(model_path, image_path, device='cuda'):
     pred_mask, p1, p2, p3 = infer(model, img_tensor, device)
 
     # 可视化结果
-    visualize_result(image, pred_mask, img_size=512)  # 保持输入的resize尺寸
-    visualize_result(image, p1, img_size=512)  # 保持输入的resize尺寸
-    visualize_result(image, p2, img_size=512)  # 保持输入的resize尺寸
-    visualize_result(image, p3, img_size=512)  # 保持输入的resize尺寸
+    visualize_result(image, pred_mask, img_size=512, file_name="pred.png")  # 保持输入的resize尺寸
+    visualize_result(image, p1, img_size=512, file_name="p1.png")  # 保持输入的resize尺寸
+    visualize_result(image, p2, img_size=512, file_name="p2.png")  # 保持输入的resize尺寸
+    visualize_result(image, p3, img_size=512, file_name="p3.png")  # 保持输入的resize尺寸
 
 
 if __name__ == "__main__":
