@@ -43,7 +43,7 @@ def train(args):
     # model = UNet_Line(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     # model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     model = UNetHough(n_channels=3, n_classes=args.num_classes, bilinear=True, img_size=args.img_size).to(device)
-    if args.pretrained is not None:
+    if args.pretrained is not None and args.pretrained != "":
         model.load_state_dict(torch.load(args.pretrained, map_location=torch.device("cpu")), strict=False)
         model.to(device)
         print("load pretrained model!")
