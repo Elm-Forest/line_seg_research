@@ -33,7 +33,7 @@ class HTMask(nn.Module):
         # h, w = x.size(-2), x.size(-1)
         x = self.conv1x1(x)
         out = self.conv2(x)
-        hough_map = self.ht(out.to(torch.float32)).to(torch.float16)
+        hough_map = self.ht(out.to(torch.float32))
         mask = self.mask_gen(hough_map)
         mask = mask.expand(-1, self.mask_out_channels, -1, -1)
         return mask, out
