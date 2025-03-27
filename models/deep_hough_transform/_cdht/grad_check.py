@@ -8,8 +8,6 @@ import deep_inverse_hough as idh
 import torch
 import torch.nn as nn
 
-from models.direction_mask.dm import DirectionalMaskModule
-
 
 class C_dht_Function(torch.autograd.Function):
     @staticmethod
@@ -156,9 +154,24 @@ def create_complex_line_image():
     return img
 
 
+def create_simple_line_image():
+    # 创建一个空白图像 [1, 1, 180, 180]，1个batch，1个channel，180x180像素
+    img = torch.zeros((1, 1, 50, 50), dtype=torch.float32)
+
+    # 第一条线段：从(20, 20)到(100, 100)
+    for x in range(10, 40):
+        img[0, 0, x, x] = 1.0  # 线段1
+
+    # 第二条线段：从(60, 40)到(120, 100)
+    for x in range(10, 40):
+        img[0, 0, x, x - 10] = 1.0  # 线段2
+
+    return img
+
+
 if __name__ == '__main__':
     dht = C_dht(180, 200).cuda()
-    img = create_complex_line_image().cuda()
+    img = create_simple_line_image().cuda()
     hm = dht(img)
     img = img.cuda().requires_grad_(True)
     test = torch.autograd.gradcheck(
