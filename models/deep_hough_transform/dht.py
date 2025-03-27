@@ -1,8 +1,5 @@
-import os
 import random
 
-os.add_dll_directory(r"E:\IDEsource\miniconda\envs\torch2\Lib\site-packages\torch\lib")
-os.add_dll_directory(r"E:\environment\cuda12.8\bin")
 import deep_hough as dh
 import deep_inverse_hough as idh
 import torch
