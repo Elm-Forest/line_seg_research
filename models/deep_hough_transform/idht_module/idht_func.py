@@ -1,7 +1,3 @@
-import os
-
-os.add_dll_directory(r"E:\IDEsource\miniconda\envs\torch2\Lib\site-packages\torch\lib")
-
 import deep_inverse_hough as idh
 
 import torch
