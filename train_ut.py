@@ -7,7 +7,7 @@ import numpy as np
 
 from losses.dice import DiceLoss, FocalLoss
 from models.Unet.unet_ht import UNetHT
-from utils.metrics import mIoU, get_metrics
+from utils.metrics import get_metrics
 
 warnings.filterwarnings("ignore")
 
@@ -15,7 +15,6 @@ import torch
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from datasets.line_dataset import PowerLineDataset
 
@@ -51,35 +50,37 @@ def train(args):
     bce_criterion = FocalLoss(logits=True).to(device)
     dice_criterion = DiceLoss().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    print_step = 10
     for epoch in range(1, args.epochs + 1):
         model.train()
         epoch_loss = 0
-        with tqdm(total=len(train_loader), desc=f"Epoch {epoch}/{args.epochs}", unit='batch') as pbar:
-            for images, masks in train_loader:
-                images = images.to(device)
-                masks = masks.to(device)
 
-                optimizer.zero_grad()
+        for step, (images, masks) in enumerate(train_loader, 1):
+            images = images.to(device)
+            masks = masks.to(device)
 
-                # 直接不使用 autocast，进行标准精度训练
-                preds = model(images)
-                bce_loss = bce_criterion(preds, masks)
-                dice_loss = dice_criterion(preds, masks)
-                loss = bce_loss + dice_loss
+            optimizer.zero_grad()
 
-                # 反向传播
-                loss.backward()
+            # 直接不使用 autocast，进行标准精度训练
+            preds = model(images)
+            bce_loss = bce_criterion(preds, masks)
+            dice_loss = dice_criterion(preds, masks)
+            loss = bce_loss + dice_loss
 
-                # 优化器更新
-                optimizer.step()
+            # 反向传播
+            loss.backward()
 
-                # 获取指标
-                metrics = get_metrics(preds, masks, 0.5)
-                epoch_loss += bce_loss.item()
+            # 优化器更新
+            optimizer.step()
 
-                # 更新进度条，显示损失和部分指标
-                pbar.set_postfix(loss=bce_loss.item(), metrics=str(metrics))
-                pbar.update(1)
+            # 获取指标
+            metrics = get_metrics(preds, masks, 0.5)
+            epoch_loss += bce_loss.item()
+
+            # 控制打印的频率，每 print_step 步打印一次
+            if step % print_step == 0:
+                print(f"[Epoch {epoch}] Step {step}/{len(train_loader)}: Loss = {bce_loss.item():.4f}, "
+                      f"Metrics = {metrics}")
 
         # 验证阶段
         model.eval()
