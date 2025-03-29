@@ -7,7 +7,7 @@ import numpy as np
 
 from losses.dice import DiceLoss, FocalLoss
 from models.Unet.unet_ht import UNetHT
-from utils.metrics import mIoU
+from utils.metrics import mIoU, get_metrics
 
 warnings.filterwarnings("ignore")
 
@@ -49,10 +49,8 @@ def train(args):
         print("load pretrained model!")
     # Mask2Former
     bce_criterion = FocalLoss(logits=True).to(device)
-    # dice_criterion = DiceLoss().to(device)
     dice_criterion = DiceLoss().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    # metric = IoU2()
     for epoch in range(1, args.epochs + 1):
         model.train()
         epoch_loss = 0
@@ -75,32 +73,43 @@ def train(args):
                 # 优化器更新
                 optimizer.step()
 
-                # miou = mean_iou(preds, masks, args.num_classes)
-                miou = mIoU(preds, masks).item()
-                # miou = metric(preds, masks).item()
+                # 获取指标
+                metrics = get_metrics(preds, masks, 0.5)
                 epoch_loss += bce_loss.item()
 
-                pbar.set_postfix(loss=bce_loss.item(), miou=round(miou, 4))
+                # 更新进度条，显示损失和部分指标
+                pbar.set_postfix(loss=bce_loss.item(), metrics=str(metrics))
                 pbar.update(1)
 
         # 验证阶段
         model.eval()
-        total_miou = 0
+        total_metrics = {"AUC": 0, "F1": 0, "Acc": 0, "Sen": 0, "Spe": 0, "pre": 0, "IOU": 0}
         with torch.no_grad():
             for images, masks in val_loader:
                 images = images.to(device)
                 masks = masks.to(device)
 
                 preds = model(images)
-                miou = mIoU(preds, masks).item()
-                total_miou += miou
+                metrics = get_metrics(preds, masks, 0.5)
 
+                # 累加各个指标
+                for key in total_metrics:
+                    total_metrics[key] += metrics[key]
+
+        # 计算平均损失和验证指标
         avg_loss = epoch_loss / len(train_loader)
-        avg_miou = total_miou / len(val_loader)
+        avg_metrics = {key: total_metrics[key] / len(val_loader) for key in total_metrics}
 
-        print(f"\n[Epoch {epoch}] Avg Loss: {avg_loss:.4f} | Val mIoU: {avg_miou:.4f}\n")
+        # 打印训练损失和验证指标
+        print(f"\n[Epoch {epoch}] Avg Loss: {avg_loss:.4f}")
+        print(f"Validation Metrics: AUC: {avg_metrics['AUC']:.4f}, F1: {avg_metrics['F1']:.4f}, "
+              f"Acc: {avg_metrics['Acc']:.4f}, Sen: {avg_metrics['Sen']:.4f}, Spe: {avg_metrics['Spe']:.4f}, "
+              f"Pre: {avg_metrics['pre']:.4f}, IOU: {avg_metrics['IOU']:.4f}")
+
+        # 保存模型检查点
         os.makedirs(args.save_dir, exist_ok=True)
-        torch.save(model.state_dict(), os.path.join(args.save_dir, f'unet_powerline_ep_{epoch}_{avg_miou:.4f}.pth'))
+        torch.save(model.state_dict(),
+                   os.path.join(args.save_dir, f'unet_powerline_ep_{epoch}_{avg_metrics["IOU"]:.4f}.pth'))
         print("Save checkpoint!")
 
     # 保存模型
@@ -114,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument('--image_dir', type=str, default=r'K:\dataset\power line dataset\images')
     parser.add_argument('--mask_dir', type=str, default=r'K:\dataset\power line dataset\labels')
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
-    parser.add_argument('--pretrained', type=str, default="./checkpoints/unet_powerline.pth")
+    parser.add_argument('--pretrained', type=str, default="")  # ./checkpoints/unet_powerline.pth
     parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--epochs', type=int, default=3)
     parser.add_argument('--seed', type=int, default=42)
@@ -123,7 +132,7 @@ if __name__ == "__main__":
     parser.add_argument('--rho_res', type=int, default=1)
     parser.add_argument('--img_size', type=int, default=512)
     parser.add_argument('--val_split', type=float, default=0.2)
-    parser.add_argument('--num_classes', type=int, default=2)
+    parser.add_argument('--num_classes', type=int, default=1)
     args = parser.parse_args()
     seed = args.seed
     np.random.seed(seed)

@@ -45,7 +45,7 @@ def mIoU(pr, gt, eps=1e-7, n_classes=2):
     iou_per_class = []
 
     # Iterate through each class
-    sem_class = 1
+    sem_class = 0
     pr_inds = (pr == sem_class)
     gt_inds = (gt == sem_class)
 
