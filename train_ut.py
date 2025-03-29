@@ -52,9 +52,6 @@ def train(args):
     dice_criterion = DiceLoss().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     # metric = IoU2()
-
-    scaler = GradScaler()
-
     for epoch in range(1, args.epochs + 1):
         model.train()
         epoch_loss = 0
@@ -65,15 +62,18 @@ def train(args):
 
                 optimizer.zero_grad()
 
-                with autocast():
-                    preds = model(images)
-                    bce_loss = bce_criterion(preds, masks)
-                    dice_loss = dice_criterion(preds, masks)
-                    loss = bce_loss + dice_loss
+                # 直接不使用 autocast，进行标准精度训练
+                preds = model(images)
+                bce_loss = bce_criterion(preds, masks)
+                dice_loss = dice_criterion(preds, masks)
+                loss = bce_loss + dice_loss
 
-                scaler.scale(loss).backward()
-                scaler.step(optimizer)
-                scaler.update()
+                # 反向传播
+                loss.backward()
+
+                # 优化器更新
+                optimizer.step()
+
                 # miou = mean_iou(preds, masks, args.num_classes)
                 miou = mIoU(preds, masks).item()
                 # miou = metric(preds, masks).item()
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument('--mask_dir', type=str, default=r'K:\dataset\power line dataset\labels')
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--pretrained', type=str, default="./checkpoints/unet_powerline.pth")
-    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--epochs', type=int, default=3)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--lr', type=float, default=1e-4)

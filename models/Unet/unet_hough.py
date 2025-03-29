@@ -1,7 +1,8 @@
 """ Full assembly of the parts to form the complete network """
 
 from models.Unet.unet_parts import *
-from models.deep_hough_transform.dht import C_dht
+from models.deep_hough_transform.dht_module.dht_func import C_dht
+
 from models.direction_mask.dmg import DirectionalMaskGenerator
 from models.modules.cga import CGAFusion
 

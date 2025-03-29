@@ -1,8 +1,9 @@
 """ Full assembly of the parts to form the complete network """
 
 from models.Unet.unet_parts import *
-from models.deep_hough_transform.HT import CAT_HTIHT, hough_transform
-from models.deep_hough_transform.dht import C_dht
+from models.deep_hough_transform.HT_cuda import CAT_HTIHT_Cuda
+from models.deep_hough_transform.dht_module.dht_func import C_dht
+
 from models.direction_mask.dmg import DirectionalMaskGenerator
 from models.modules.cga import CGAFusion
 
@@ -63,7 +64,7 @@ class FusionBlock2(nn.Module):
 
 
 class UNetHT(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=False, numAngle=3, numRho=1, img_size=512,
+    def __init__(self, n_channels, n_classes, bilinear=False, angle_res=3, rho_res=1, img_size=512,
                  device=torch.device('cuda')):
         super(UNetHT, self).__init__()
         self.n_channels = n_channels
@@ -78,21 +79,15 @@ class UNetHT(nn.Module):
         self.down4 = (Down(512, 1024 // factor))
 
         self.up1 = (Up(1024, 512 // factor, bilinear))
-        vote_index = hough_transform(img_size // 8, img_size // 8, numAngle, numRho)
-        vote_index = torch.from_numpy(vote_index).float().contiguous().to(device)
-        self.ht1 = CAT_HTIHT(vote_index, 512 // factor, 512 // factor)
+        self.ht1 = CAT_HTIHT_Cuda(512 // factor, 512 // factor, img_size // 8, img_size // 8, angle_res, rho_res)
         self.fb1 = FusionBlock(512 // factor, 512 // factor, 512 // factor)
 
         self.up2 = (Up(512, 256 // factor, bilinear))
-        vote_index = hough_transform(img_size // 4, img_size // 4, numAngle, numRho)
-        vote_index = torch.from_numpy(vote_index).float().contiguous().to(device)
-        self.ht2 = CAT_HTIHT(vote_index, 256 // factor, 256 // factor)
+        self.ht2 = CAT_HTIHT_Cuda(256 // factor, 256 // factor, img_size // 4, img_size // 4, angle_res, rho_res)
         self.fb2 = FusionBlock(256 // factor, 256 // factor, 256 // factor)
 
         self.up3 = (Up(256, 128 // factor, bilinear))
-        vote_index = hough_transform(img_size // 2, img_size // 2, numAngle, numRho)
-        vote_index = torch.from_numpy(vote_index).float().contiguous().to(device)
-        self.ht3 = CAT_HTIHT(vote_index, 128 // factor, 128 // factor)
+        self.ht3 = CAT_HTIHT_Cuda(128 // factor, 128 // factor, img_size // 2, img_size // 2, angle_res, rho_res)
         self.fb3 = FusionBlock(128 // factor, 128 // factor, 128 // factor)
 
         self.up4 = (Up(128, 64, bilinear))
@@ -106,15 +101,15 @@ class UNetHT(nn.Module):
         x5 = self.down4(x4)
 
         x = self.up1(x5, x4)
-        mask = self.ht1(x)
+        mask = self.ht1(x.float())
         x = self.fb1(x, mask)
 
         x = self.up2(x, x3)
-        mask = self.ht2(x)
+        mask = self.ht2(x.float())
         x = self.fb2(x, mask)
 
         x = self.up3(x, x2)
-        mask = self.ht3(x)
+        mask = self.ht3(x.float())
         x = self.fb3(x, mask)
 
         x = self.up4(x, x1)
