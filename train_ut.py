@@ -14,7 +14,6 @@ warnings.filterwarnings("ignore")
 import torch
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
-from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -39,9 +38,11 @@ def train(args):
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
     # 模型
-    # model = UNet_Line(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
-    # model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
-    model = UNetHT(n_channels=3, n_classes=args.num_classes, bilinear=True, img_size=args.img_size).to(device)
+    model = UNetHT(n_channels=3, n_classes=args.num_classes,
+                   bilinear=True,
+                   angle_res=args.angle_res,
+                   rho_res=args.rho_res,
+                   img_size=args.img_size).to(device)
     if args.pretrained is not None and args.pretrained != "":
         model.load_state_dict(torch.load(args.pretrained, map_location=torch.device("cpu")), strict=False)
         model.to(device)
@@ -118,6 +119,8 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=3)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--angle_res', type=int, default=3)
+    parser.add_argument('--rho_res', type=int, default=1)
     parser.add_argument('--img_size', type=int, default=512)
     parser.add_argument('--val_split', type=float, default=0.2)
     parser.add_argument('--num_classes', type=int, default=2)
