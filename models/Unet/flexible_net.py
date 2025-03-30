@@ -4,7 +4,7 @@ import segmentation_models_pytorch as smp
 import torch.utils.checkpoint
 
 from models.Unet.unet_parts import *
-from models.deep_hough_transform.HT_cuda import CAT_HTIHT_Cuda
+from models.deep_hough_transform.HT_cuda import CAT_HTIHT_Cuda, HTIHT_Cuda
 from models.deep_hough_transform.dht_module.dht_func import C_dht
 from models.direction_mask.dmg import DirectionalMaskGenerator
 from models.modules.cga import CGAFusion
@@ -80,15 +80,15 @@ class UNetHT(nn.Module):
         self.down4 = (Down(512, 1024 // factor))
 
         self.up1 = (Up(1024, 512 // factor, bilinear))
-        self.ht1 = CAT_HTIHT_Cuda(512 // factor, 512 // factor, img_size // 8, img_size // 8, angle_res, rho_res)
+        self.ht1 = HTIHT_Cuda(512 // factor, 512 // factor, img_size // 8, img_size // 8, angle_res, rho_res)
         self.fb1 = FusionBlock(512 // factor, 512 // factor, 512 // factor)
 
         self.up2 = (Up(512, 256 // factor, bilinear))
-        self.ht2 = CAT_HTIHT_Cuda(256 // factor, 256 // factor, img_size // 4, img_size // 4, angle_res, rho_res)
+        self.ht2 = HTIHT_Cuda(256 // factor, 256 // factor, img_size // 4, img_size // 4, angle_res, rho_res)
         self.fb2 = FusionBlock(256 // factor, 256 // factor, 256 // factor)
 
         self.up3 = (Up(256, 128 // factor, bilinear))
-        self.ht3 = CAT_HTIHT_Cuda(128 // factor, 128 // factor, img_size // 2, img_size // 2, angle_res, rho_res)
+        self.ht3 = HTIHT_Cuda(128 // factor, 128 // factor, img_size // 2, img_size // 2, angle_res, rho_res)
         self.fb3 = FusionBlock(128 // factor, 128 // factor, 128 // factor)
 
         self.up4 = (Up(128, 64, bilinear))
