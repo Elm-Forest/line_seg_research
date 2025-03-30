@@ -22,7 +22,8 @@ class HTIHT_Cuda(nn.Module):
 
         self.conv1 = nn.Sequential(
             *make_conv_block(inplanes, inplanes, kernel_size=(9, 1), padding=(4, 0), bias=True, groups=inplanes))
-        self.conv2 = nn.Sequential(*make_conv_block(inplanes, outplanes, kernel_size=(9, 1), padding=(4, 0), bias=True))
+        self.conv2 = nn.Sequential(
+            *make_conv_block(inplanes, outplanes, kernel_size=(9, 1), padding=(4, 0), bias=True))
         self.conv3 = nn.Sequential(
             *make_conv_block(outplanes, outplanes, kernel_size=(9, 1), padding=(4, 0), bias=True))
 
@@ -55,7 +56,6 @@ class HTIHT_Cuda(nn.Module):
 
 
 class CAT_HTIHT_Cuda(nn.Module):
-
     def __init__(self, inplanes, outplanes, H, W, theta_res=1.0, rho_res=1.0):
         super(CAT_HTIHT_Cuda, self).__init__()
         self.htiht = HTIHT_Cuda(inplanes, outplanes, H, W, theta_res, rho_res)
