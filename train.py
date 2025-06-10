@@ -23,7 +23,15 @@ from datasets.line_dataset import PowerLineDataset
 
 def train(args):
     # 数据路径
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        print("CUDA或MPS不可用, 使用CPU进行训练。") 
+        device = torch.device("cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     image_paths = sorted(glob.glob(os.path.join(args.image_dir, '*.png')))
     mask_paths = sorted(glob.glob(os.path.join(args.mask_dir, '*.png')))
     assert len(image_paths) == len(mask_paths), "图像和Mask数量不一致！"
