@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from models.deep_hough_transform.dht import DHT_Layer
+from models.deep_hough_transform.ht_layer import DHT_Layer
 from models.fpn.backbone.fpn import FPN18, FPN50, FPN101, ResNext50_FPN
 from models.fpn.backbone.mobilenet import MobileNet_FPN
 from models.fpn.backbone.res2net import res2net50_FPN
@@ -47,8 +47,6 @@ class Net(nn.Module):
             self.dht_detector2 = DHT_Layer(256, 128, numAngle=numAngle, numRho=numRho // 2)
             self.dht_detector3 = DHT_Layer(256, 128, numAngle=numAngle, numRho=numRho // 4)
             self.dht_detector4 = DHT_Layer(256, 128, numAngle=numAngle, numRho=numRho // (output_stride // 4))
-
-
 
             self.last_conv = nn.Sequential(
                 nn.Conv2d(512, 1, 1)
