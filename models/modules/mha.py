@@ -4,7 +4,7 @@ from typing import Optional, Tuple, List
 
 import torch
 from torch import Tensor
-from torch.nn.functional import linear, dropout, softmax, relu
+from torch.nn.functional import linear, dropout, softmax
 from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 from torch.nn.modules import Module
 from torch.nn.modules.linear import NonDynamicallyQuantizableLinear
@@ -12,7 +12,7 @@ from torch.nn.parameter import Parameter
 from torch.overrides import has_torch_function, handle_torch_function
 
 
-class HoughAttention(Module):
+class MHAttention(Module):
     __constants__ = ['batch_first']
     bias_k: Optional[torch.Tensor]
     bias_v: Optional[torch.Tensor]
@@ -20,7 +20,7 @@ class HoughAttention(Module):
     def __init__(self, embed_dim, num_heads, dropout=0., bias=True, add_bias_kv=False, add_zero_attn=False,
                  kdim=None, vdim=None, batch_first=False, device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
-        super(HoughAttention, self).__init__()
+        super(MHAttention, self).__init__()
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
@@ -80,7 +80,7 @@ class HoughAttention(Module):
         if '_qkv_same_embed_dim' not in state:
             state['_qkv_same_embed_dim'] = True
 
-        super(HoughAttention, self).__setstate__(state)
+        super(MHAttention, self).__setstate__(state)
 
     def forward(self, query: Tensor, key: Tensor, value: Tensor, key_padding_mask: Optional[Tensor] = None,
                 need_weights: bool = True, attn_mask: Optional[Tensor] = None,
@@ -341,31 +341,50 @@ def _scaled_dot_product_attention(
         ht=None,
         attn_w_before=None
 ) -> Tuple[Tensor, Tensor, Tensor]:
+    # B, Nt, E = q.shape
+    # q = q / math.sqrt(E)
+    # # (B, Nt, E) x (B, E, Ns) -> (B, Nt, Ns)
+    # attn = torch.bmm(q, k.transpose(-2, -1))
+    #
+    # if attn_mask is not None:
+    #     attn += attn_mask
+    # # attn_w_before: The attn_content of the previous layer
+    # bc, qy, _ = attn_w_before.shape
+    # attn_w_before = attn_w_before.view(bc, qy, height, weight)
+    # # ht: hough transform - > hough map -> filter noise ->reverse hough transform -> enhance line feature
+    # attn_w_before = ht(attn_w_before)
+    # attn_w_before = attn_w_before.view(bc, qy, -1)
+    # attn_w_before = torch.tanh(attn_w_before)
+    # # attn_w_before = softmax(attn_w_before, dim=-1)
+    # attn = attn * attn_w_before
+    # attn_content = relu(attn)
+    # # attn_w_before = softmax(attn_w_before, dim=-1)
+    # attn = softmax(attn, dim=-1)
+    # # attn = softmax(attn_w_before + attn, dim=-1)
+    #
+    # if dropout_p > 0.0:
+    #     attn = dropout(attn, p=dropout_p)
+    # # (B, Nt, Ns) x (B, Ns, E) -> (B, Nt, E)
+    # output = torch.bmm(attn, v)
+
+
+
+    ###
     B, Nt, E = q.shape
     q = q / math.sqrt(E)
     # (B, Nt, E) x (B, E, Ns) -> (B, Nt, Ns)
-    attn = torch.bmm(q, k.transpose(-2, -1))
-
     if attn_mask is not None:
-        attn += attn_mask
-    # attn_w_before: The attn_content of the previous layer
-    bc, qy, _ = attn_w_before.shape
-    attn_w_before = attn_w_before.view(bc, qy, height, weight)
-    # ht: hough transform - > hough map -> filter noise ->reverse hough transform -> enhance line feature
-    attn_w_before = ht(attn_w_before)
-    attn_w_before = attn_w_before.view(bc, qy, -1)
-    attn_w_before = torch.tanh(attn_w_before)
-    # attn_w_before = softmax(attn_w_before, dim=-1)
-    attn = attn * attn_w_before
-    attn_content = relu(attn)
-    # attn_w_before = softmax(attn_w_before, dim=-1)
-    attn = softmax(attn, dim=-1)
-    # attn = softmax(attn_w_before + attn, dim=-1)
+        attn = torch.baddbmm(attn_mask, q, k.transpose(-2, -1))
+    else:
+        attn = torch.bmm(q, k.transpose(-2, -1))
 
+    attn_content = attn
+    attn = softmax(attn, dim=-1)
     if dropout_p > 0.0:
         attn = dropout(attn, p=dropout_p)
     # (B, Nt, Ns) x (B, Ns, E) -> (B, Nt, E)
     output = torch.bmm(attn, v)
+
     return output, attn, attn_content
 
 

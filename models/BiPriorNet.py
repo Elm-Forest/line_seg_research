@@ -24,11 +24,13 @@ class CrossAttention(nn.Module):
 
 
 class QueryBlock(nn.Module):
-    def __init__(self, num_queries, d_model=256, nhead=8, dim_feedforward=2048, dropout=0.1):
+    def __init__(self, num_queries, d_model=256, nhead=8, dim_feedforward=2048, dropout=0.1, attn_weight=False):
         super(QueryBlock, self).__init__()
         self.cross_attention = TransformerDecoderLayer(d_model, nhead,
                                                        dim_feedforward=dim_feedforward,
-                                                       dropout=dropout)
+                                                       dropout=dropout,
+                                                       attn_weight=attn_weight
+                                                       )
 
     def forward(self, src, tgt, query_embed):
         query_object = self.cross_attention(tgt, src, query_pos=query_embed)
@@ -41,9 +43,10 @@ class QueryModule(nn.Module):
         super(QueryModule, self).__init__()
         self.num_queries = num_queries
         self.query_embed = nn.Embedding(num_queries, d_model)
-        self.query_blocks_list = self.layers = _get_clones(
+        self.query_blocks_list = _get_clones(
             QueryBlock(num_queries, d_model, nhead, dim_feedforward, dropout),
             num_blocks)
+        self.cross_attn = QueryBlock(num_queries, d_model, nhead, dim_feedforward, dropout, attn_weight=True)
 
     def forward(self, src):
         bs, c, h, w = src.shape
@@ -52,8 +55,9 @@ class QueryModule(nn.Module):
         tgt = torch.zeros_like(query_embed)
         for query_block in self.query_blocks_list:
             tgt = query_block(src, tgt, query_embed)
-        objects_map = tgt.permute(1, 2, 0).view(bs, c, h, w)
-        return objects_map
+        tgt = self.cross_attn(src, tgt, query_embed)  # bs * num_queries * h*w
+        tgt = tgt.permute(1, 0, 2).view(bs, self.num_queries, h, w)
+        return tgt
 
 
 def _get_clones(module, N):
@@ -163,7 +167,7 @@ class TransformerDecoderLayer(nn.Module):
 
 
 class Net(nn.Module):
-    def __init__(self, numAngle, numRho, backbone, angle_res=3, rho_res=1, img_size=512, num_queries=10):
+    def __init__(self,backbone, angle_res=3, rho_res=1, img_size=512, num_queries=10):
         super(Net, self).__init__()
         if backbone == 'resnet18':
             self.backbone = FPN18(pretrained=True, output_stride=32)
@@ -184,17 +188,27 @@ class Net(nn.Module):
             self.backbone = res2net50_FPN()
             output_stride = 32
 
-        self.ht1 = HTIHT_Cuda(256, 128, img_size // 4, img_size // 4, angle_res, rho_res)
-        self.ht2 = HTIHT_Cuda(256, 128, img_size // 8, img_size // 8, angle_res, rho_res)
-        self.ht3 = HTIHT_Cuda(256, 128, img_size // 16, img_size // 16, angle_res, rho_res)
-        self.ht4 = HTIHT_Cuda(256, 128, img_size // 16, img_size // 16, angle_res, rho_res)
+        self.query_module1 = QueryModule(num_queries, d_model=256)
+        self.query_module2 = QueryModule(num_queries, d_model=256)
+        self.query_module3 = QueryModule(num_queries, d_model=256)
+        self.query_module4 = QueryModule(num_queries, d_model=256)
+
+        self.ht1 = HTIHT_Cuda(num_queries, num_queries, img_size // 4, img_size // 4, angle_res, rho_res)
+        self.ht2 = HTIHT_Cuda(num_queries, num_queries, img_size // 8, img_size // 8, angle_res, rho_res)
+        self.ht3 = HTIHT_Cuda(num_queries, num_queries, img_size // 16, img_size // 16, angle_res, rho_res)
+        self.ht4 = HTIHT_Cuda(num_queries, num_queries, img_size // 16, img_size // 16, angle_res, rho_res)
 
     def forward(self, x):
         p1, p2, p3, p4 = self.backbone(x)
-        p1 = self.ht1(p1)
-        p2 = self.ht2(p2)
-        p3 = self.ht3(p3)
-        p4 = self.ht4(p4)
+
+        p1_query = self.query_module1(p1)
+        p1 = self.ht1(p1_query)
+        p2_query = self.query_module2(p2)
+        p2 = self.ht2(p2_query)
+        p3_query = self.query_module3(p3)
+        p3 = self.ht3(p3_query)
+        p4_query = self.query_module4(p4)
+        p4 = self.ht4(p4_query)
         # cat = self.upsample_cat(p1, p2, p3, p4)
         # logist = self.last_conv(cat)
 
@@ -203,12 +217,20 @@ class Net(nn.Module):
 
 
 if __name__ == '__main__':
-    net = Net(180, 180, "resnet50").cuda()
+    net = Net("resnet50").cuda()
     x = torch.randn(1, 3, 512, 512).cuda()
     x = net(x)
-
-if __name__ == '__main__':
-    qm = QueryModule(num_queries=10).cuda()
-    x = torch.randn(1, 128, 32, 32).cuda()
-    x = qm(x)
-    print(x.shape)
+    params = list(net.parameters())
+    num_params = 0
+    for param in params:
+        curr_num_params = 1
+        for size_count in param.size():
+            curr_num_params *= size_count
+        num_params += curr_num_params
+    print("total number of parameters: " + str(num_params))
+#
+# if __name__ == '__main__':
+#     qm = QueryModule(num_queries=10).cuda()
+#     x = torch.randn(1, 128, 32, 32).cuda()
+#     x = qm(x)
+#     print(x.shape)
