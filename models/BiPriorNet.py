@@ -230,10 +230,10 @@ class BiPriorNet(nn.Module):
         p3_prior = self.ht3(p3_query)
         p4_prior = self.ht4(p4_query)
         
-        print("p1", p1.shape)
-        print("p2", p2.shape)
-        print("p3", p3.shape)
-        print("p4", p4.shape)
+        # print("p1", p1.shape)
+        # print("p2", p2.shape)
+        # print("p3", p3.shape)
+        # print("p4", p4.shape)
 
         h_r = None
         # p1_fused, h_r = self.fuse1(p1, p1_prior, h_r)
@@ -244,10 +244,10 @@ class BiPriorNet(nn.Module):
         p2_fused, _ = self.fuse2(p2, p2_prior, None)
         p3_fused, _ = self.fuse3(p3, p3_prior, None)
         p4_fused, _ = self.fuse4(p4, p4_prior, None)
-        print("p1_fused", p1_fused.shape)
-        print("p2_fused", p2_fused.shape)
-        print("p3_fused", p3_fused.shape)
-        print("p4_fused", p4_fused.shape)
+        # print("p1_fused", p1_fused.shape)
+        # print("p2_fused", p2_fused.shape)
+        # print("p3_fused", p3_fused.shape)
+        # print("p4_fused", p4_fused.shape)
         
         p1 = nn.functional.interpolate(p1_fused, size=(self.img_size, self.img_size), mode='bilinear')
         p2 = nn.functional.interpolate(p2_fused, size=(self.img_size, self.img_size), mode='bilinear')
