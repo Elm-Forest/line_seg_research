@@ -2,7 +2,7 @@ import argparse
 import glob
 import os
 import warnings
-
+from torch.cuda import amp
 import numpy as np
 import torch.nn.functional as F
 
@@ -41,7 +41,7 @@ def train(args):
     # 模型
     # model = UNet_Line(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     # model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
-    model = BiPriorNet(n_channels=3, n_classes=args.num_classes, img_size=args.img_size,num_queries=args.num_queries, backbone = "res2net50").to(device)
+    model = BiPriorNet(n_channels=3, n_classes=args.num_classes, img_size=args.img_size,num_queries=args.num_queries, backbone = "resnet50").to(device)
     if args.pretrained is not None and args.pretrained != "":
         model.load_state_dict(torch.load(args.pretrained, map_location=torch.device("cpu")), strict=False)
         model.to(device)
@@ -51,6 +51,9 @@ def train(args):
     dice_criterion = DiceLoss().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     print_step = 10
+    print("training!")
+    # 在训练循环前创建GradScaler
+    scaler = amp.GradScaler()
     for epoch in range(1, args.epochs + 1):
         model.train()
         epoch_loss = 0
@@ -61,12 +64,19 @@ def train(args):
 
             optimizer.zero_grad()
 
-            # 直接不使用 autocast，进行标准精度训练
-            preds = model(images)
-            bce_loss = bce_criterion(preds, masks)
-            dice_loss = dice_criterion(preds, masks)
-            loss = bce_loss + dice_loss
+            # 使用AMP的autocast上下文管理器
+            with amp.autocast(dtype=torch.float16):
+                preds = model(images)
+                bce_loss = bce_criterion(preds, masks)
+                dice_loss = dice_criterion(preds, masks)
+                loss = bce_loss + dice_loss
 
+            # # 使用scaler进行反向传播
+            # scaler.scale(loss).backward()
+            
+            # # 使用scaler更新参数
+            # scaler.step(optimizer)
+            # scaler.update()
             # 反向传播
             loss.backward()
 

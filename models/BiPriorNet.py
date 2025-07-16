@@ -199,7 +199,7 @@ class BiPriorNet(nn.Module):
         self.ht3 = HTIHT_Cuda(num_queries, num_queries, img_size // 16, img_size // 16, angle_res, rho_res)
         self.ht4 = HTIHT_Cuda(num_queries, num_queries, img_size // 16, img_size // 16, angle_res, rho_res)
 
-                # 添加DynamicConvBlock融合模块
+        # 添加DynamicConvBlock融合模块
         self.fuse1 = DynamicConvBlock(
             dim=256,                  # 匹配p1_query的通道数
             ctx_dim=num_queries,       # 匹配p1_prior的通道数
@@ -213,8 +213,32 @@ class BiPriorNet(nn.Module):
         self.fuse2 = DynamicConvBlock(256, num_queries, 5, 3, is_first=True)
         self.fuse3 = DynamicConvBlock(256, num_queries, 5, 3, is_first=True)  # 高层特征用小核
         self.fuse4 = DynamicConvBlock(256, num_queries, 5, 3, is_first=True)
+
+        self.convs1 = nn.Sequential(
+            nn.Conv2d(256, 256, 3, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+        )
+        self.convs2 = nn.Sequential(
+            nn.Conv2d(256, 256, 3, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+        )
+        self.convs3 = nn.Sequential(
+            nn.Conv2d(256, 256, 3, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+        )
+        self.convs4 = nn.Sequential(
+            nn.Conv2d(256, 256, 3, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+        )
         self.last_conv = nn.Sequential(
-            nn.Conv2d(1024, n_classes, 1)
+            nn.Conv2d(1024, 256, 3, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, n_classes, 1)
         )
 
     def forward(self, x):
@@ -229,7 +253,18 @@ class BiPriorNet(nn.Module):
         p2_prior = self.ht2(p2_query)
         p3_prior = self.ht3(p3_query)
         p4_prior = self.ht4(p4_query)
-        
+
+
+        # p1_prior = p1_query
+        # p2_prior = p2_query
+        # p3_prior = p3_query
+        # p4_prior = p4_query
+
+
+        # p1_fused = p1
+        # p2_fused = p2
+        # p3_fused = p3
+        # p4_fused = p4
         # print("p1", p1.shape)
         # print("p2", p2.shape)
         # print("p3", p3.shape)
@@ -248,7 +283,11 @@ class BiPriorNet(nn.Module):
         # print("p2_fused", p2_fused.shape)
         # print("p3_fused", p3_fused.shape)
         # print("p4_fused", p4_fused.shape)
-        
+        p1_fused = self.convs1(p1_fused)
+        p2_fused = self.convs2(p2_fused)
+        p3_fused = self.convs3(p3_fused)
+        p4_fused = self.convs4(p4_fused)
+
         p1 = nn.functional.interpolate(p1_fused, size=(self.img_size, self.img_size), mode='bilinear')
         p2 = nn.functional.interpolate(p2_fused, size=(self.img_size, self.img_size), mode='bilinear')
         p3 = nn.functional.interpolate(p3_fused, size=(self.img_size, self.img_size), mode='bilinear')
