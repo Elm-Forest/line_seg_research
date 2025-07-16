@@ -5,6 +5,7 @@ import torch
 
 class C_idht_Function(torch.autograd.Function):
     @staticmethod
+    @custom_fwd(device_type='cuda', cast_inputs=torch.float32)
     def forward(ctx, accumulator, H, W, numangle, numrho):
         """
         accumulator: [N, C, numangle, numrho]
@@ -32,6 +33,7 @@ class C_idht_Function(torch.autograd.Function):
         return output
 
     @staticmethod
+    @custom_bwd(device_type='cuda')
     def backward(ctx, grad_output):
         """
         grad_output: [N, C, H, W]  <-- 对 forward 返回 output 的梯度

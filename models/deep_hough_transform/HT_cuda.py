@@ -19,7 +19,7 @@ def make_conv_block(in_channels, out_channels, kernel_size=3, stride=1, padding=
 class HTIHT_Cuda(nn.Module):
     def __init__(self, inplanes, outplanes, H, W, theta_res=1.0, rho_res=1.0, mid_ch = 256):
         super(HTIHT_Cuda, self).__init__()
-
+        mid_ch = inplanes
         self.conv1 = nn.Sequential(
             *make_conv_block(inplanes, mid_ch, kernel_size=(9, 1), padding=(4, 0), bias=True, groups=inplanes))
         self.conv2 = nn.Sequential(

@@ -41,7 +41,7 @@ def train(args):
     # 模型
     # model = UNet_Line(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     # model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
-    model = BiPriorNet(n_channels=3, n_classes=args.num_classes, img_size=args.img_size, backbone = "resnet50").to(device)
+    model = BiPriorNet(n_channels=3, n_classes=args.num_classes, img_size=args.img_size,num_queries=args.num_queries, backbone = "res2net50").to(device)
     if args.pretrained is not None and args.pretrained != "":
         model.load_state_dict(torch.load(args.pretrained, map_location=torch.device("cpu")), strict=False)
         model.to(device)
@@ -124,9 +124,10 @@ if __name__ == "__main__":
     parser.add_argument('--image_dir', type=str, default=r'/kaggle/input/pl-lite/images')
     parser.add_argument('--mask_dir', type=str, default=r'/kaggle/input/pl-lite/labels')
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
-    parser.add_argument('--pretrained', type=str, default="checkpoints/unet_powerline_ep_3_0.0002.pth")
+    parser.add_argument('--pretrained', type=str, default="")
     parser.add_argument('--batch_size', type=int, default=3)
-    parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--num_queries', type=int, default=32)
+    parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--angle_res', type=int, default=3)

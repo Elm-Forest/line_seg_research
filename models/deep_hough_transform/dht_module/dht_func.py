@@ -4,6 +4,7 @@ import torch
 
 class C_dht_Function(torch.autograd.Function):
     @staticmethod
+    @custom_fwd(device_type='cuda', cast_inputs=torch.float32)
     def forward(ctx, feat, numangle, numrho):
         N, C, _, _ = feat.size()
         out = torch.zeros(N, C, numangle, numrho).type_as(feat).cuda()
@@ -15,6 +16,7 @@ class C_dht_Function(torch.autograd.Function):
         return outputs
 
     @staticmethod
+    @custom_bwd(device_type='cuda')
     def backward(ctx, grad_output):
         feat = ctx.saved_tensors[0]
         numangle = ctx.numangle
