@@ -6,3 +6,6 @@ pip install timm==0.6.12
 
 python models/deep_hough_transform/dht_module/_cdht/setup.py install
 python models/deep_hough_transform/idht_module/_ciht/setup.py install
+
+git config --global user.name "Elm Forest"
+git config --global user.email  timbrightland@gmail.com
