@@ -41,7 +41,7 @@ def train(args):
     # 模型
     # model = UNet_Line(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     # model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
-    import segmentation_models_pytorch as smp
+    import smp.segmentation_models_pytorch as smp
 
     model = smp.UPerNet(
         encoder_name="mit_b1",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
