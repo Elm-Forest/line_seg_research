@@ -142,7 +142,7 @@ if __name__ == "__main__":
     parser.add_argument('--mask_dir', type=str, default=r'/kaggle/input/pl-lite/labels')
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--encoder_name', type=str, default='mit_b4')
-    parser.add_argument('--pretrained', type=str, default="./checkpoints/unet_powerline_ep_26_0.3664.pth")
+    parser.add_argument('--pretrained', type=str, default="")
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--num_queries', type=int, default=32)
     parser.add_argument('--epochs', type=int, default=100)
