@@ -41,10 +41,10 @@ def train(args):
     # 模型
     # model = UNet_Line(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
     # model = UNet(n_channels=3, n_classes=args.num_classes, bilinear=True).to(device)
-    import smp.segmentation_models_pytorch as smp
+    import segmentation_models_pytorch as smp
 
-    model = smp.UPerNet(
-        encoder_name="mit_b1",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+    model = smp.Segformer(
+        encoder_name="mit_b4",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
         encoder_weights="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
         in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
         classes=1,                      # model output channels (number of classes in your dataset)
@@ -141,8 +141,8 @@ if __name__ == "__main__":
     parser.add_argument('--image_dir', type=str, default=r'/kaggle/input/pl-lite/images')
     parser.add_argument('--mask_dir', type=str, default=r'/kaggle/input/pl-lite/labels')
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
-    parser.add_argument('--pretrained', type=str, default="")
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--pretrained', type=str, default="./checkpoints/unet_powerline_ep_26_0.3664.pth")
+    parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--num_queries', type=int, default=32)
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--seed', type=int, default=42)

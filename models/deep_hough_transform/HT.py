@@ -78,7 +78,7 @@ def make_conv_block(in_channels, out_channels, kernel_size=3, stride=1, padding=
 class HT(nn.Module):
     def __init__(self, vote_index):
         super(HT, self).__init__()
-        self.r, self.c, self.h, self.w = vote_index.size()
+        self.r, self.c, self.h, self.w = vote_index.shape
         self.norm = max(self.r, self.c)
         self.vote_index = vote_index.view(self.r * self.c, self.h * self.w)
         self.total = vote_index.sum(0).max()
@@ -99,7 +99,7 @@ class HT(nn.Module):
 class IHT(nn.Module):
     def __init__(self, vote_index):
         super(IHT, self).__init__()
-        self.r, self.c, self.h, self.w = vote_index.size()
+        self.r, self.c, self.h, self.w = vote_index.shape
         self.vote_index = vote_index.view(self.r * self.c, self.h * self.w).t()
 
     def forward(self, input_HT):
@@ -116,6 +116,45 @@ class HTIHT(nn.Module):
     def __init__(self, vote_index, inplanes, outplanes):
         super(HTIHT, self).__init__()
 
+        self.conv1 = nn.Sequential(
+            *make_conv_block(inplanes, inplanes, kernel_size=(9, 1), padding=(4, 0), bias=True, groups=inplanes))
+        self.conv2 = nn.Sequential(*make_conv_block(inplanes, outplanes, kernel_size=(9, 1), padding=(4, 0), bias=True))
+        self.conv3 = nn.Sequential(
+            *make_conv_block(outplanes, outplanes, kernel_size=(9, 1), padding=(4, 0), bias=True))
+
+        self.relu = nn.ReLU(inplace=True)
+        self.tanh = nn.Tanh()
+        self.ht = HT(vote_index)
+        self.iht = IHT(vote_index)
+
+        filtersize = 4
+        x = np.zeros(shape=((2 * filtersize + 1)))
+        x[filtersize] = 1
+        z = []
+        for _ in range(0, inplanes):
+            sigma = np.random.uniform(low=1, high=2.5, size=(1))
+            y = ndimage.filters.gaussian_filter(x, sigma=sigma, order=2)
+            y = -y / np.sum(np.abs(y))
+            z.append(y)
+        z = np.stack(z)
+        self.conv1[0].weight.data.copy_(torch.from_numpy(z).unsqueeze(1).unsqueeze(3))
+        nn.init.kaiming_normal_(self.conv2[0].weight, mode='fan_out', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv3[0].weight, mode='fan_out', nonlinearity='relu')
+
+    def forward(self, x, **kwargs):
+        out = self.ht(x)
+        out = self.conv1(out)
+        out = self.conv2(out)
+        out = self.conv3(out)
+        out = self.iht(out)
+        return out
+
+
+class HTIHT_Cpu(nn.Module):
+    def __init__(self, inplanes, outplanes, H, W, theta_res=1.0, rho_res=1.0, mid_ch = 256):
+        super(HTIHT_Cpu, self).__init__()
+        vote_index = hough_transform(H, W, theta_res, rho_res)
+        vote_index = torch.from_numpy(vote_index).float().contiguous().cuda()
         self.conv1 = nn.Sequential(
             *make_conv_block(inplanes, inplanes, kernel_size=(9, 1), padding=(4, 0), bias=True, groups=inplanes))
         self.conv2 = nn.Sequential(*make_conv_block(inplanes, outplanes, kernel_size=(9, 1), padding=(4, 0), bias=True))

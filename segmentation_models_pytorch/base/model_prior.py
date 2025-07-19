@@ -6,10 +6,10 @@ from . import initialization as init
 from .hub_mixin import SMPHubMixin
 from .utils import is_torch_compiling
 
-T = TypeVar("T", bound="SegmentationModel")
+T = TypeVar("T", bound="SegmentationModelPrior")
 
 
-class SegmentationModel(torch.nn.Module, SMPHubMixin):
+class SegmentationModelPrior(torch.nn.Module, SMPHubMixin):
     """Base class for all segmentation models."""
 
     _is_torch_scriptable = True
@@ -64,6 +64,36 @@ class SegmentationModel(torch.nn.Module, SMPHubMixin):
             self.check_input_shape(x)
 
         features = self.encoder(x)
+        
+        p3_query = self.query_module3(features[-4])
+        p4_query = self.query_module4(features[-3])
+        p5_query = self.query_module5(features[-2])
+
+        
+        p3_prior = self.ht3(p3_query)
+        p4_prior = self.ht4(p4_query)
+        p5_prior = self.ht5(p5_query)
+        
+        p3_fused, _ = self.fuse3(features[-4], p3_prior, None)
+        p4_fused, _ = self.fuse4(features[-3], p4_prior, None)
+        p5_fused, _ = self.fuse5(features[-2], p5_prior, None)
+
+        features[-4] = p3_fused
+        features[-3] = p4_fused
+        features[-2] = p5_fused
+        # img_sizes = []
+        # channels = []
+        # print(len(features))
+        # for feat in features:
+        #     # 获取特征图的高度和宽度（假设是2D特征图，形状为 [batch, channels, height, width]）
+        #     _, c, h, w = feat.shape
+        #     img_sizes.append((h, w))
+        #     channels.append(c)
+        #     print(f"特征图的大小: height={h}, width={w}, c = {c}")  # 打印每个特征图的大小
+        
+        # downsampling_rate = [1, 2, 4, 8, 16, 32]
+        # p6 ,p5 ,p4, p3 = features[-1], features[-2], features[-3], features[-4]
+
         decoder_output = self.decoder(features)
 
         masks = self.segmentation_head(decoder_output)
